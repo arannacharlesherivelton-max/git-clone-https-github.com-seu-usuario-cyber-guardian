@@ -1,0 +1,26 @@
+#include <iostream>
+#include <pcap.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+
+// Callback para cada pacote capturado
+void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *buffer) {
+    struct ip *ip_header = (struct ip*)(buffer + 14); // Pula o cabeçalho Ethernet
+    std::cout << "Pacote interceptado: IP Origem: " << inet_ntoa(ip_header->ip_src) << std::endl;
+    // Aqui os dados seriam enviados para o socket local do Python
+}
+
+int main() {
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_t *handle = pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf);
+    
+    if (handle == nullptr) {
+        std::cerr << "Erro ao abrir dispositivo: " << errbuf << std::endl;
+        return 1;
+    }
+    
+    std::cout << "CyberGuardian C++ Sensor Iniciado..." << std::endl;
+    pcap_loop(handle, 0, process_packet, nullptr);
+    
+    return 0;
+}
