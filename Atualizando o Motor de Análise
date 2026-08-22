@@ -1,0 +1,101 @@
+import socket
+import json
+import threading
+import requests
+import numpy as np
+from sklearn.ensemble import IsolationForest
+
+class AIThreatIntelligence:
+    def __init__(self):
+        # Configurações de Integração
+        self.java_logger_url = "http://localhost:8080/api/logs/alert"
+        self.node_dashboard_url = "http://localhost:3000/webhook/threat"
+        self.ruby_agent_url = "http://localhost:4567/block_ip"
+        self.blocked_ips = set()
+
+        # 1. INICIALIZANDO O MODELO DE IA
+        # contamination=0.05 indica que esperamos que cerca de 5% do tráfego seja malicioso
+        self.model = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
+        self._train_baseline_model()
+
+    def _train_baseline_model(self):
+        print("[IA] Treinando modelo com dados de tráfego normal (Baseline)...")
+        # Simulando um dataset histórico de tráfego normal.
+        # Features representam: [Taxa_de_Conexao, Tamanho_Medio_Pacote, Erros_Autenticacao]
+        normal_traffic = np.array([
+            [5, 512, 0],
+            [2, 256, 0],
+            [12, 1024, 1],
+            [3, 128, 0],
+            [8, 512, 0],
+            [1, 64, 0]
+        ])
+        # Treina a IA para entender que os dados acima são o comportamento "saudável"
+        self.model.fit(normal_traffic)
+        print("[IA] Modelo treinado e pronto para classificar anomalias.")
+
+    def analyze_traffic(self, payload):
+        ip = payload.get("ip")
+        if ip in self.blocked_ips:
+            return
+
+        # 2. EXTRAÇÃO DE FEATURES
+        # O sensor C++ agora envia as características da conexão, não apenas o IP
+        taxa_conexao = payload.get("conexões_por_segundo", 0)
+        tamanho_pacote = payload.get("tamanho_pacote", 0)
+        erros = payload.get("erros_auth", 0)
+        
+        features = np.array([[taxa_conexao, tamanho_pacote, erros]])
+
+        # 3. PREDIÇÃO DO MODELO
+        # O Isolation Forest retorna 1 para tráfego INOFFENSIVO e -1 para ANOMALIA
+        prediction = self.model.predict(features)
+
+        if prediction[0] == -1:
+            self.trigger_alert(ip, "IA ML: Padrão Anômalo (Isolation Forest)")
+        else:
+            print(f"[IA] Tráfego de {ip} classificado como Normal.")
+
+    def trigger_alert(self, ip, threat_type):
+        print(f"\n[Python Core] 🚨 AMEAÇA DETECTADA: {ip} - {threat_type}")
+        self.blocked_ips.add(ip)
+        
+        alert_data = {"ip": ip, "type": threat_type}
+        threading.Thread(target=self._notify_services, args=(alert_data,)).start()
+
+    def _notify_services(self, payload):
+        # Repassa o alerta para Node, Java e Ruby (mesma lógica anterior)
+        try:
+            requests.post(self.node_dashboard_url, json=payload, timeout=2)
+        except: pass
+        
+        try:
+            requests.post(self.java_logger_url, json=payload, timeout=2)
+        except: pass
+        
+        try:
+            requests.post(self.ruby_agent_url, json={"ip": payload["ip"]}, timeout=3)
+        except: pass
+
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('localhost', 9090)) 
+    server.listen(5)
+    
+    ai_core = AIThreatIntelligence()
+    print("CyberGuardian AI aguardando telemetria...")
+    
+    while True:
+        client, addr = server.accept()
+        data = client.recv(1024).decode('utf-8').strip()
+        if data:
+            try:
+                # Agora o Python espera um JSON do sensor com as características
+                payload = json.loads(data)
+                ai_core.analyze_traffic(payload)
+            except json.JSONDecodeError:
+                print("Erro: Payload mal formatado. Esperado JSON.")
+        client.close()
+
+if __name__ == "__main__":
+    start_server()
