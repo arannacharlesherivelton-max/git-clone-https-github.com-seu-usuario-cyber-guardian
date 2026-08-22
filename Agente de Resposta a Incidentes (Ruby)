@@ -1,0 +1,22 @@
+require 'sinatra'
+
+set :port, 4567
+
+# Rota para bloquear um IP no firewall local
+post '/block_ip' do
+  request.body.rewind
+  data = JSON.parse request.body.read
+  malicious_ip = data['ip']
+
+  # Executa o comando de bloqueio no Iptables (requer privilégios)
+  system_command = "sudo iptables -A INPUT -s #{malicious_ip} -j DROP"
+  
+  if system(system_command)
+    puts "[Ruby Agent] AÇÃO EXECUTADA: IP #{malicious_ip} bloqueado no firewall."
+    status 200
+    { message: "IP isolado com sucesso" }.to_json
+  else
+    status 500
+    { error: "Falha ao aplicar regra de firewall" }.to_json
+  end
+end
