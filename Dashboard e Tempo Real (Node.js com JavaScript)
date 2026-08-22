@@ -1,0 +1,29 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+app.use(express.json());
+
+// Endpoint para receber gatilhos do sistema Python
+app.post('/webhook/threat', (req, res) => {
+    const threatData = req.body;
+    
+    console.log(`[Node.js] Ameaça recebida: ${threatData.ip}`);
+    
+    // Dispara a informação em tempo real para todos os painéis (front-end) abertos
+    io.emit('new_threat', threatData);
+    
+    res.status(200).send('Alerta repassado para o Dashboard');
+});
+
+io.on('connection', (socket) => {
+    console.log('Novo administrador conectado ao Dashboard de Segurança');
+});
+
+server.listen(3000, () => {
+    console.log('CyberGuardian Dashboard rodando na porta 3000');
+});
