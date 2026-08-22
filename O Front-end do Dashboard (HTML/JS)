@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ CyberGuardian Dashboard</title>
+    <!-- Importa a biblioteca do Socket.IO do CDN -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-bottom: 20px; }
+        .alert-box {
+            background-color: #161b22;
+            border-left: 4px solid #f85149;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            animation: fadeIn 0.5s;
+        }
+        .ip { color: #58a6ff; font-weight: bold; }
+        .threat-type { color: #f85149; font-weight: bold; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </text>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ CyberGuardian - Monitoramento em Tempo Real</h1>
+            <p>Status: <span style="color: #3fb950;">Ativo e Monitorando</span></p>
+        </div>
+        <div id="alert-container">
+            <p style="color: #8b949e;">Aguardando detecção de ameaças...</p>
+        </div>
+    </div>
+
+    <script>
+        // Conecta ao servidor Node.js que está rodando na porta 3000
+        const socket = io('http://localhost:3000');
+        const alertContainer = document.getElementById('alert-container');
+        let alertCount = 0;
+
+        socket.on('connect', () => {
+            console.log('Conectado ao servidor de telemetria.');
+        });
+
+        // Escuta o evento 'new_threat' emitido pelo Node.js
+        socket.on('new_threat', (data) => {
+            if (alertCount === 0) alertContainer.innerHTML = ''; // Limpa a mensagem inicial
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const alertElement = document.createElement('div');
+            alertElement.className = 'alert-box';
+            alertElement.innerHTML = `
+                <strong>[${timestamp}] ATENÇÃO:</strong> Atividade maliciosa detectada e bloqueada.<br>
+                Alvo/Origem: <span class="ip">${data.ip}</span> <br>
+                Classificação: <span class="threat-type">${data.type}</span>
+            `;
+            
+            // Adiciona o novo alerta no topo da lista
+            alertContainer.prepend(alertElement);
+            alertCount++;
+        });
+    </script>
+</body>
+</html>
