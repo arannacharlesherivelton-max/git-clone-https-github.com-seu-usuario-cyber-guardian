@@ -1,0 +1,28 @@
+import socket
+import time
+
+# O IP do "atacante" que queremos que o sistema detecte e bloqueie
+TARGET_IP = "192.168.1.155" 
+CORE_HOST = 'localhost'
+CORE_PORT = 9090
+
+print("🛡️ Iniciando CyberGuardian Attack Simulator...")
+print(f"Simulando ataque de Força Bruta/DDoS a partir do IP {TARGET_IP}.")
+print("Enviando rajada de 60 requisições para estourar o limite da heurística...\n")
+
+for i in range(1, 61):
+    try:
+        # Abre conexão, envia o IP e fecha (simulando a ação do sensor C++)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((CORE_HOST, CORE_PORT))
+        s.sendall(TARGET_IP.encode('utf-8'))
+        s.close()
+        
+        print(f"[{i}/60] Pacote malicioso forjado e enviado.")
+        time.sleep(0.05) # Pausa minúscula para gerar volume em pouco tempo
+        
+    except ConnectionRefusedError:
+        print("❌ Erro: O Core Python não está rodando na porta 9090.")
+        break
+
+print("\n✅ Rajada concluída. Verifique o Dashboard (index.html) para confirmar o bloqueio!")
