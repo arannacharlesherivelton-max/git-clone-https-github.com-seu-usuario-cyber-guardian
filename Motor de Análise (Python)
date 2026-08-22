@@ -1,0 +1,28 @@
+import socket
+import json
+
+class AnomalyDetector:
+    def __init__(self):
+        self.ip_reputation = {} # Aqui entraria o modelo de IA ou heurística
+
+    def analyze_traffic(self, source_ip):
+        # Lógica de detecção (ex: bloqueio após N conexões suspeitas)
+        print(f"[Python IDS] Analisando tráfego de: {source_ip}")
+        # Se anomalia detectada -> Aciona script Ruby para bloqueio
+
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('localhost', 9090))
+    server.listen(5)
+    
+    detector = AnomalyDetector()
+    print("CyberGuardian Core aguardando telemetria dos sensores...")
+    
+    while True:
+        client, addr = server.accept()
+        data = client.recv(1024).decode('utf-8')
+        if data:
+            detector.analyze_traffic(data)
+
+if __name__ == "__main__":
+    start_server()
