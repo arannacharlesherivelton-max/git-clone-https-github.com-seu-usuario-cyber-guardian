@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # 1. Cérebro de IA e Heurística
+  core_python:
+    build: ./python_core
+    ports:
+      - "9090:9090"
+    networks:
+      - cyber_net
+    environment:
+      - JAVA_LOGGER_URL=http://logger_java:8080/api/logs/alert
+      - NODE_DASH_URL=http://dashboard_node:3000/webhook/threat
+      - RUBY_AGENT_URL=http://agent_ruby:4567/block_ip
+
+  # 2. Processamento de Logs
+  logger_java:
+    build: ./java_logger
+    ports:
+      - "8080:8080"
+    networks:
+      - cyber_net
+
+  # 3. Backend do Dashboard
+  dashboard_node:
+    build: ./node_dashboard
+    ports:
+      - "3000:3000"
+    networks:
+      - cyber_net
+
+  # 4. Agente de Resposta (Isolamento de Firewall)
+  agent_ruby:
+    build: ./ruby_agent
+    ports:
+      - "4567:4567"
+    privileged: true # Obrigatório para que o Ruby possa alterar o iptables do sistema host
+    networks:
+      - cyber_net
+
+networks:
+  cyber_net:
+    driver: bridge
