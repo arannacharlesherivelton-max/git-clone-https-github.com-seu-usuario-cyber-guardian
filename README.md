@@ -1,2 +1,1 @@
-# git-clone-https-github.com-seu-usuario-cyber-guardian
-Cyber Guardian
+git clone git@github.com:seu-usuario/cyber-guardian.git
